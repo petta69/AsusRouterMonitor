@@ -6,7 +6,7 @@ import time
 
 class RouterInfo:
 
-    def __init__(self, ipaddress, username, password):
+    def __init__(self, ipaddress, ipport, username, password):
         """
         Create the object and connect with the router
         Parameters:
@@ -14,11 +14,13 @@ class RouterInfo:
             username : Root user name
             password : Password required to login
         """
-        self.url = 'http://{}/appGet.cgi'.format(ipaddress)
+        self.ip = ipaddress
+        self.port = ipport
+        self.url = f'https://{ipaddress}:{ipport}/appGet.cgi'
         self.headers = None
-        self.__authenticate(ipaddress, username, password)
+        self.__authenticate(username, password)
 
-    def __authenticate(self, ipaddress, username, password):
+    def __authenticate(self, username, password):
         """
         Authenticate the object with the router
         Parameters:
@@ -32,14 +34,19 @@ class RouterInfo:
             'user-agent': "asusrouter-Android-DUTUtil-1.0.0.245"
         }
         try:
-            r = requests.post(url='http://{}/login.cgi'.format(ipaddress), data=payload, headers=headers).json()
+            r = requests.post(url=f'https://{self.ip}:{self.port}/login.cgi', 
+                data=payload, 
+                headers=headers,
+                verify=True
+                ).json()
         except:
             return False
         if "asus_token" in r:
             token = r['asus_token']
+            #self.token = r['asus_token']
             self.headers = {
                 'user-agent': "asusrouter-Android-DUTUtil-1.0.0.245",
-                'cookie': 'asus_token={}'.format(token)
+                'cookie': f'asus_token={token}'
             }
             return True
         else:
@@ -55,7 +62,10 @@ class RouterInfo:
         if self.headers:
             payload = "hook={}".format(command)
             try:
-                r = requests.post(url=self.url, data=payload, headers=self.headers)
+                r = requests.post(url=f'https://{self.ip}:{self.port}/appGet.cgi', 
+                    data=payload, 
+                    headers=self.headers
+                    )
             except:
                 return None
             return r.text
